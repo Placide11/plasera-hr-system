@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmploymentStatus {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+  INACTIVE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Department {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+}
+
+model Employee {
+  id           String           @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String           @unique
+  phone        String?
+  avatarUrl    String?
+  jobTitle     String
+  status       EmploymentStatus @default(FULL_TIME)
+  dateJoined   DateTime         @default(now())
+  location     String?
+  departmentId String
+  department   Department       @relation(fields: [departmentId], references: [id])
+  
+  // Manager self-relation
+  managerId    String?
+  manager      Employee?        @relation("ManagerToSubordinates", fields: [managerId], references: [id])
+  subordinates Employee[]       @relation("ManagerToSubordinates")
+
+  leaveRequests LeaveRequest[]
+  activityLogs  ActivityLog[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model LeaveRequest {
+  id         String      @id @default(cuid())
+  employeeId String
+  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       LeaveType
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  status     LeaveStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model ActivityLog {
+  id          String    @id @default(cuid())
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  action      String
+  description String
+  createdAt   DateTime  @default(now())
+}
